@@ -43,100 +43,108 @@ def extract_json(text: str):
 # 🔵 RAG CHAT
 # =========================================================
 def chat_with_resume(question: str):
-    results = search(question, k=5)
+    # 🔍 busca com score
+    results = vectorstore.similarity_search_with_score(question, k=3)
 
-    # 🔴 nenhum resultado
-    if not results:
-        return {
-            "answer": "Não encontrei informação relevante no documento.",
-            "sources": []
-        }
+    # 🔥 filtro por qualidade
+    MAX_SCORE = 1.2
+    filtered_results = [
+        (doc, score) for doc, score in results if score <= MAX_SCORE
+    ]
 
-    # BLOQUEIO INTELIGENTE (ESSENCIAL)
-    best_score = float(results[0][1])
+    # 🔥 pega só os melhores
+    top_docs = filtered_results[:2]
 
-    if best_score > 0.8:
-        return {
-            "answer": "Não encontrei informação relevante no documento.",
-            "sources": []
-        }
+    # 🧠 monta contexto
+    context = "\n".join([doc.page_content for doc, _ in top_docs])
 
-    # 🟢 pega só os melhores
-    TOP_K_CONTEXT = 3
-    top_results = results[:TOP_K_CONTEXT]
-
-    # 🟢 monta contexto
-    context_parts = []
-    for doc, _ in top_results:
-        if hasattr(doc, "page_content"):
-            context_parts.append(doc.page_content)
-        else:
-            context_parts.append(str(doc))
-
-    context = "\n\n".join(context_parts)
-
-    # 🟢 monta fontes
-    sources = []
-    for doc, score in top_results:
-        content = doc.page_content if hasattr(doc, "page_content") else str(doc)
-
-        sources.append({
-            "content": content,
-            "score": float(score)
-        })
-
-    # prompt melhorado
+    # 🧠 prompt melhorado
     prompt = f"""
-Responda SOMENTE com base no contexto abaixo.
-Cite apenas informações presentes no contexto.
-Se não encontrar resposta, diga exatamente:
-"Não encontrei informação relevante no documento."
+Você é um assistente que responde perguntas com base no contexto abaixo.
 
 Contexto:
 {context}
 
 Pergunta:
 {question}
+
+Responda de forma clara e objetiva.
+Se não encontrar resposta no contexto, diga:
+"Não encontrei informação relevante no documento."
 """
 
-    response = llm.invoke(prompt)
+    # 🤖 chamada do modelo (ajusta conforme o seu)
+    answer = llm.invoke(prompt)
 
+    # 📦 retorno estruturado
     return {
-        "answer": response.content,
-        "sources": sources
+        "answer": answer,
+        "sources": [
+            {
+                "content": doc.page_content,
+                "score": float(score)
+            }
+            for doc, score in top_docs
+        ]
     }
-
 
 # =========================================================
 # 🔵 ANALISADOR DE CURRÍCULO
 # =========================================================
 def analyze_resume(text: str):
-    prompt = f"""
-Você é um analisador de currículos.
+    text_lower = text.lower()
 
-RESPONDA APENAS EM JSON VÁLIDO.
-NÃO escreva explicações.
-NÃO use markdown.
-NÃO escreva nada antes ou depois do JSON.
+    pontos_fortes = []
+    pontos_fracos = []
+    sugestoes = []
 
-Formato obrigatório:
-{{
-  "nivel": "Júnior | Pleno | Senior",
-  "pontos_fortes": ["..."],
-  "pontos_fracos": ["..."],
-  "sugestoes": ["..."]
-}}
+    # 🔥 habilidades detectadas
+    if "python" in text_lower:
+        pontos_fortes.append("Experiência com Python")
 
-Se o texto for inválido, ainda assim retorne JSON.
+    if "fastapi" in text_lower:
+        pontos_fortes.append("Desenvolvimento de APIs com FastAPI")
 
-CURRÍCULO:
-{text}
-"""
+    if "postgres" in text_lower or "sql" in text_lower:
+        pontos_fortes.append("Experiência com banco de dados")
 
-    response = llm.invoke(prompt)
+    if "rag" in text_lower or "ia" in text_lower:
+        pontos_fortes.append("Experiência com Inteligência Artificial")
 
-    return extract_json(response.content)
+    # 🔴 faltas importantes
+    if "docker" not in text_lower:
+        pontos_fracos.append("Ausência de Docker")
+        sugestoes.append("Adicionar Docker ao currículo")
 
+    if "teste" not in text_lower:
+        pontos_fracos.append("Falta de testes automatizados")
+        sugestoes.append("Criar testes automatizados com pytest")
+
+    if "aws" not in text_lower and "gcp" not in text_lower:
+        pontos_fracos.append("Sem experiência com cloud")
+        sugestoes.append("Adicionar experiência com AWS ou GCP")
+
+    if "git" not in text_lower:
+        pontos_fracos.append("Pouca evidência de uso de Git")
+        sugestoes.append("Mencionar uso de Git e versionamento")
+
+    # 🔥 nível (simples mas eficaz)
+    if "anos" in text_lower:
+        if "1 ano" in text_lower:
+            nivel = "Júnior"
+        elif "2 anos" in text_lower or "3 anos" in text_lower:
+            nivel = "Pleno"
+        else:
+            nivel = "Sênior"
+    else:
+        nivel = "Pleno"
+
+    return {
+        "nivel": nivel,
+        "pontos_fortes": pontos_fortes,
+        "pontos_fracos": pontos_fracos,
+        "sugestoes": sugestoes
+    }
 # =========================================================
 # 🔵 COMPARAR CURRÍCULO COM VAGA
 # =========================================================

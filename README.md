@@ -114,8 +114,7 @@ Pergunta:
 Resposta:
   * FastAPI é usado para criar APIs rápidas.
 
-### Análise de Currículo
-
+Análise de Currículo
 Entrada:
  * Desenvolvedor Python com experiência em APIs REST usando FastAPI
 
@@ -123,8 +122,7 @@ Saída:
   * Nível: Pleno
   * Pontos fortes e sugestões automáticas
 
-### Comparação com Vaga
-
+Comparação com Vaga
 Entrada:
   * Currículo: Python + FastAPI
   * Vaga: Python, FastAPI, Docker

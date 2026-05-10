@@ -1,42 +1,92 @@
+from typing import List
+
 from fastapi import APIRouter, UploadFile, File
-from services.vector_store import create_index
-import io
+from pypdf import PdfReader
+
+from langchain_text_splitters import RecursiveCharacterTextSplitter
+from langchain_core.documents import Document
+
+from services.ai_service import update_vectorstore
 
 router = APIRouter()
 
 @router.post("/upload")
-async def upload_file(file: UploadFile = File(...)):
-    content = await file.read()
+async def upload_files(
+    files: list[UploadFile] = File(
+        ...,
+        description="Upload multiple files"
+    )
+):
 
-    filename = file.filename.lower()
+    all_documents = []
 
-    # 🔹 TXT
-    if filename.endswith(".txt"):
-        try:
-            text = content.decode("utf-8")
-        except:
-            text = content.decode("latin-1")
+    for file in files:
 
-    # 🔹 PDF
-    elif filename.endswith(".pdf"):
-        from pypdf import PdfReader
+        content = ""
 
-        pdf = PdfReader(io.BytesIO(content))
-        text = ""
-        for page in pdf.pages:
-            text += page.extract_text() or ""
+        # =========================
+        # PDF
+        # =========================
+        if file.filename.endswith(".pdf"):
 
-    # 🔹 DOCX
-    elif filename.endswith(".docx"):
-        from docx import Document
+            reader = PdfReader(file.file)
 
-        doc = Document(io.BytesIO(content))
-        text = "\n".join([p.text for p in doc.paragraphs])
+            for page_number, page in enumerate(reader.pages):
 
-    else:
-        return {"error": "Formato não suportado"}
+                text = page.extract_text()
 
-    # 🔹 cria index
-    create_index(text)
+                if text:
 
-    return {"message": "Arquivo processado com sucesso"}
+                    all_documents.append(
+                        Document(
+                            page_content=text,
+                            metadata={
+                                "source": file.filename,
+                                "page": page_number + 1
+                            }
+                        )
+                    )
+
+        # =========================
+        # TXT
+        # =========================
+        elif file.filename.endswith(".txt"):
+
+            text = (await file.read()).decode("utf-8")
+
+            all_documents.append(
+                Document(
+                    page_content=text,
+                    metadata={
+                        "source": file.filename,
+                        "page": 1
+                    }
+                )
+            )
+
+        else:
+            return {
+                "erro": f"Formato não suportado: {file.filename}"
+            }
+
+    # =========================
+    # CHUNKING
+    # =========================
+
+    splitter = RecursiveCharacterTextSplitter(
+        chunk_size=1000,
+        chunk_overlap=150
+    )
+
+    final_chunks = splitter.split_documents(all_documents)
+
+    # =========================
+    # UPDATE VECTORSTORE
+    # =========================
+
+    update_vectorstore(final_chunks)
+
+    return {
+        "message": f"{len(files)} arquivos processados com sucesso",
+        "chunks": len(final_chunks)
+    }

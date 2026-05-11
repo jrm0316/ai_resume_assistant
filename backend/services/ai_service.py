@@ -117,6 +117,25 @@ def chat_with_resume(
             k=10
         )
 
+        # =========================================================
+        # 🔥 RERANK
+        # =========================================================
+
+        pairs = []
+
+        for doc, score in results:
+            pairs.append([question, doc.page_content])
+
+        rerank_scores = reranker.predict(pairs)
+
+        reranked_docs = sorted(
+            zip(results, rerank_scores),
+            key=lambda x: x[1],
+            reverse=True
+        )
+
+        results = [item[0] for item in reranked_docs[:5]]
+
         if not results:
             return {
                 "answer": "Nenhum documento encontrado.",
@@ -419,6 +438,24 @@ def compare_documents(
         question,
         k=15
     )
+    # =========================================================
+    # 🔥 RERANK
+    # =========================================================
+
+    pairs = []
+
+    for doc, score in results:
+        pairs.append([question, doc.page_content])
+
+    rerank_scores = reranker.predict(pairs)
+
+    reranked_docs = sorted(
+        zip(results, rerank_scores),
+        key=lambda x: x[1],
+        reverse=True
+    )
+
+    results = [item[0] for item in reranked_docs[:8]]
 
     # =========================================================
     # 🔥 BOOST PARA CURRÍCULO
@@ -485,7 +522,30 @@ def compare_documents(
     # TOP DOCS
     # =========================
 
-    top_results = reranked[:3]
+    # =========================================================
+    # 🔥 GARANTE MÚLTIPLOS DOCUMENTOS
+    # =========================================================
+
+    top_results = []
+    seen_sources = set()
+
+    for item in reranked:
+
+        (doc, vector_score), rerank_score = item
+
+        source = doc.metadata.get("source")
+
+        # evita repetir sempre o mesmo arquivo
+        if source not in seen_sources:
+
+            seen_sources.add(source)
+
+            top_results.append(item)
+
+        # pega no máximo 4 documentos
+        if len(top_results) >= 4:
+            break
+
     unique_results = []
     seen = set()
 

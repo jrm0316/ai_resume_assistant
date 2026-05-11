@@ -1,5 +1,6 @@
 import streamlit as st
 import requests
+import time
 
 # =========================================================
 # PAGE CONFIG
@@ -17,13 +18,138 @@ st.set_page_config(
 st.markdown("""
 <style>
 
-.block-container {
-    padding-top: 0rem;
-    padding-bottom: 1rem;
+/* =========================================================
+🔥 GLOBAL
+========================================================= */
+
+html, body, [class*="css"] {
+    background-color: #0e1117;
+    color: #ffffff;
+    font-family: 'Segoe UI', sans-serif;
 }
+
+/* =========================================================
+🔥 MAIN CONTAINER
+========================================================= */
+
+.block-container {
+    padding-top: 1rem;
+    padding-bottom: 1rem;
+    max-width: 1200px;
+}
+
+/* =========================================================
+🔥 HEADER
+========================================================= */
 
 header {
     visibility: hidden;
+}
+
+/* =========================================================
+🔥 SIDEBAR
+========================================================= */
+
+[data-testid="stSidebar"] {
+    background-color: #161b22;
+    border-right: 1px solid #30363d;
+}
+
+/* =========================================================
+🔥 CHAT INPUT
+========================================================= */
+
+.stChatInputContainer {
+    background-color: #161b22;
+    border-radius: 12px;
+    border: 1px solid #30363d;
+    padding: 8px;
+}
+
+/* 🔥 input interno */
+.stChatInputContainer textarea {
+    background-color: #ffffff !important;
+    color: #ffffff !important;
+    border: none !important;
+    font-size: 16px !important;
+}
+
+/* 🔥 placeholder */
+.stChatInputContainer textarea::placeholder {
+    color: #8b949e !important;
+}
+
+/* =========================================================
+🔥 CHAT MESSAGES
+========================================================= */
+
+[data-testid="chat-message-container"] {
+    background-color: #161b22;
+    border-radius: 12px;
+    padding: 12px;
+    margin-bottom: 10px;
+    border: 1px solid #30363d;
+}
+
+/* =========================================================
+🔥 BUTTONS
+========================================================= */
+
+.stButton > button {
+    background-color: #238636;
+    color: white;
+    border-radius: 10px;
+    border: none;
+    padding: 10px 16px;
+    font-weight: 600;
+}
+
+.stButton > button:hover {
+    background-color: #2ea043;
+}
+
+/* =========================================================
+🔥 TEXT AREA
+========================================================= */
+
+textarea {
+    background-color: #0d1117 !important;
+    color: white !important;
+    border-radius: 10px !important;
+    border: 1px solid #30363d !important;
+}
+
+/* =========================================================
+🔥 METRICS
+========================================================= */
+
+[data-testid="metric-container"] {
+    background-color: #161b22;
+    border: 1px solid #30363d;
+    padding: 15px;
+    border-radius: 12px;
+}
+
+/* =========================================================
+🔥 EXPANDERS
+========================================================= */
+
+.streamlit-expanderHeader {
+    background-color: #161b22;
+    border-radius: 10px;
+}
+
+/* =========================================================
+🔥 SCROLLBAR
+========================================================= */
+
+::-webkit-scrollbar {
+    width: 10px;
+}
+
+::-webkit-scrollbar-thumb {
+    background: #30363d;
+    border-radius: 10px;
 }
 
 </style>
@@ -133,6 +259,24 @@ st.caption(
 )
 
 # =========================================================
+# 🔥 DOCUMENTOS CARREGADOS
+# =========================================================
+
+if "uploaded_files" not in st.session_state:
+    st.session_state.uploaded_files = []
+
+if st.session_state.uploaded_files:
+
+    st.markdown("### 📂 Documentos carregados")
+
+    cols = st.columns(len(st.session_state.uploaded_files))
+
+    for i, file in enumerate(st.session_state.uploaded_files):
+
+        with cols[i]:
+            st.success(file)
+
+# =========================================================
 # UPLOAD FILES
 # =========================================================
 
@@ -167,6 +311,8 @@ if st.button("Enviar arquivos"):
         )
 
         if res.status_code == 200:
+            for file in uploaded_files:
+                st.session_state.uploaded_files.append(file.name)
 
             st.session_state.uploaded_count += len(uploaded_files)
 
@@ -236,8 +382,28 @@ with tab1:
 
             with st.chat_message("assistant"):
 
-                st.markdown(answer)
+                # 🔥 loading
+                with st.spinner("🤖 Pensando..."):
 
+                    message_placeholder = st.empty()
+
+                    full_response = ""
+
+                    # 🔥 typing effect
+                    for chunk in answer.split():
+
+                        full_response += chunk + " "
+
+                        message_placeholder.markdown(
+                            full_response + "▌"
+                        )
+
+                        time.sleep(0.03)
+
+                    # 🔥 resposta final
+                    message_placeholder.markdown(full_response)
+
+                # confiança
                 confidence = data.get("confidence", 0)
 
                 normalized = max(

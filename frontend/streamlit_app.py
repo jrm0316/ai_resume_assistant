@@ -28,7 +28,7 @@ if option == "Chat com Documento":
 
     uploaded_file = st.file_uploader("Upload do arquivo (.txt)", type=["txt"])
 
-    if uploaded_file:
+    if uploaded_files:
         if st.button("Processar documento"):
             with st.spinner("Processando..."):
                 res = requests.post(
@@ -43,7 +43,7 @@ if option == "Chat com Documento":
                     st.error(f"Erro: {res.text}")
 
     if st.session_state.doc_loaded:
-        question = st.text_input("Faça uma pergunta:")
+        question = st.text_input("Faça uma pergunta:", key="chat_question")
 
         if st.button("Perguntar"):
             res = requests.post(
@@ -71,7 +71,7 @@ if option == "Chat com Documento":
 elif option == "Analisar Currículo":
     st.header("📊 Analisar Currículo")
 
-    text = st.text_area("Cole seu currículo aqui:")
+    text = st.text_area("Cole seu currículo aqui:", key="cv_interview")
 
     if st.button("Analisar"):
         res = requests.post(
@@ -106,8 +106,8 @@ elif option == "Analisar Currículo":
 elif option == "Comparar com Vaga":
     st.header("⚔️ Comparar com Vaga")
 
-    resume = st.text_area("Currículo")
-    job = st.text_area("Descrição da vaga")
+    resume = st.text_area("Currículo", key="cv_match")
+    job = st.text_area("Descrição da vaga", key="job_match")
 
     if st.button("Comparar"):
         res = requests.post(

@@ -1,5 +1,27 @@
-venv/
-backend/venv/
-__pycache__/
-*.pyc
-.env
+Python 
+__pycache__/ 
+*.pyc 
+
+# Env 
+.env 
+
+# FAISS 
+storage/faiss_index/ 
+
+# Streamlit 
+.streamlit/ 
+
+# Venv 
+venv/ 
+.env/ 
+
+# OS 
+.DS_Store 
+Thumbs.db
+
+
+#venv/
+#backend/venv/
+#__pycache__/
+#*.pyc
+#.env

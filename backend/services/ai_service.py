@@ -2,7 +2,6 @@ import os
 import json
 import re
 from dotenv import load_dotenv
-from services.vector_store import search
 
 from langchain_groq import ChatGroq
 from langchain_community.vectorstores import FAISS
@@ -662,18 +661,36 @@ Regras:
 VECTORSTORE_PATH = "storage/faiss_index"
 
 # =========================================================
+# 🧠 EMBEDDINGS + VECTOR STORE
+# =========================================================
+embeddings = HuggingFaceEmbeddings(
+    model_name="sentence-transformers/all-MiniLM-L6-v2"
+)
+
+VECTORSTORE_PATH = "storage/faiss_index"
+
+# 🔥 cria pasta storage se não existir
+os.makedirs("storage", exist_ok=True)
+
+# =========================================================
 # LOAD VECTORSTORE
 # =========================================================
 
-if os.path.exists(VECTORSTORE_PATH):
+vectorstore = None
 
-    vectorstore = FAISS.load_local(
-        VECTORSTORE_PATH,
-        embeddings,
-        allow_dangerous_deserialization=True
-    )
+try:
 
-else:
+    if os.path.exists(VECTORSTORE_PATH):
+
+        vectorstore = FAISS.load_local(
+            VECTORSTORE_PATH,
+            embeddings,
+            allow_dangerous_deserialization=True
+        )
+
+except Exception as e:
+
+    print("ERRO AO CARREGAR VECTORSTORE:", e)
 
     vectorstore = None
 

@@ -24,7 +24,7 @@ llm = ChatGroq(
 # 🧠 EMBEDDINGS + VECTOR STORE
 # =========================================================
 embeddings = HuggingFaceEmbeddings(
-    model_name="sentence-transformers/all-mpnet-base-v2"
+    model_name="sentence-transformers/all-MiniLM-L6-v2"
 )
 
 VECTORSTORE_PATH = "storage/faiss_index"
@@ -32,7 +32,7 @@ VECTORSTORE_PATH = "storage/faiss_index"
 # =========================================================
 # 🔥 RERANKER (CrossEncoder)
 # =========================================================
-reranker = CrossEncoder("cross-encoder/ms-marco-MiniLM-L-6-v2")
+# reranker = CrossEncoder("cross-encoder/ms-marco-MiniLM-L-6-v2")
 
 # =========================================================
 # 🔧 AUXILIAR - LIMPAR JSON
@@ -114,27 +114,27 @@ def chat_with_resume(
         # 🔍 BUSCA NO VECTORSTORE (em memória)
         results = vectorstore.similarity_search_with_score(
             question,
-            k=10
+            k=5
         )
 
         # =========================================================
         # 🔥 RERANK
         # =========================================================
 
-        pairs = []
+        #pairs = []
 
-        for doc, score in results:
-            pairs.append([question, doc.page_content])
+        #for doc, score in results:
+            #pairs.append([question, doc.page_content])
 
-        rerank_scores = reranker.predict(pairs)
-
+        #rerank_scores = reranker.predict(pairs)
+        '''
         reranked_docs = sorted(
             zip(results, rerank_scores),
             key=lambda x: x[1],
             reverse=True
         )
 
-        results = [item[0] for item in reranked_docs[:5]]
+        results = [item[0] for item in reranked_docs[:5]]'''
 
         if not results:
             return {
@@ -144,8 +144,8 @@ def chat_with_resume(
             }
 
         # 🔥 RERANKING
-        pairs = [(question, doc.page_content) for doc, _ in results]
-        scores = reranker.predict(pairs)
+        #pairs = [(question, doc.page_content) for doc, _ in results]
+        #scores = reranker.predict(pairs)
 
         reranked = sorted(
             zip(results, scores),
@@ -436,27 +436,27 @@ def compare_documents(
 
     results = vectorstore.similarity_search_with_score(
         question,
-        k=15
+        k=5
     )
     # =========================================================
     # 🔥 RERANK
     # =========================================================
 
-    pairs = []
+    #pairs = []
 
-    for doc, score in results:
-        pairs.append([question, doc.page_content])
+    #for doc, score in results:
+    #    pairs.append([question, doc.page_content])
 
-    rerank_scores = reranker.predict(pairs)
-
+    #rerank_scores = reranker.predict(pairs)
+    '''
     reranked_docs = sorted(
         zip(results, rerank_scores),
         key=lambda x: x[1],
         reverse=True
     )
-
+    
     results = [item[0] for item in reranked_docs[:8]]
-
+    '''
     # =========================================================
     # 🔥 BOOST PARA CURRÍCULO
     # =========================================================
@@ -489,12 +489,12 @@ def compare_documents(
     # RERANK
     # =========================
 
-    pairs = [
-        (question, doc.page_content)
-        for doc, _ in results
-    ]
+    #pairs = [
+     #   (question, doc.page_content)
+     #   for doc, _ in results
+    #]
 
-    rerank_scores = reranker.predict(pairs)
+    #rerank_scores = reranker.predict(pairs)
 
     reranked_data = []
 

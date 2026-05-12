@@ -110,93 +110,67 @@ def chat_with_resume(
     global vectorstore
 
     try:
-        # 🔍 BUSCA NO VECTORSTORE (em memória)
+
+        # =========================================================
+        # 🚨 VECTORSTORE NÃO CARREGADO
+        # =========================================================
+
+        if vectorstore is None:
+
+            return {
+                "answer": "Nenhum documento foi enviado ainda.",
+                "confidence": 0,
+                "sources": []
+            }
+
+        # =========================================================
+        # 🔍 BUSCA NO VECTORSTORE
+        # =========================================================
+
         results = vectorstore.similarity_search_with_score(
             question,
             k=5
         )
 
         # =========================================================
-        # 🔥 RERANK
+        # 🚨 NENHUM RESULTADO
         # =========================================================
 
-        #pairs = []
-
-        #for doc, score in results:
-            #pairs.append([question, doc.page_content])
-
-        #rerank_scores = reranker.predict(pairs)
-        '''
-        reranked_docs = sorted(
-            zip(results, rerank_scores),
-            key=lambda x: x[1],
-            reverse=True
-        )
-
-        results = [item[0] for item in reranked_docs[:5]]'''
-
         if not results:
+
             return {
                 "answer": "Nenhum documento encontrado.",
                 "confidence": 0,
                 "sources": []
             }
 
-        # 🔥 RERANKING
-        #pairs = [(question, doc.page_content) for doc, _ in results]
-        #scores = reranker.predict(pairs)
-
-        reranked = sorted(
-            zip(results, scores),
-            key=lambda x: x[1],
-            reverse=True
-        )
-
-        # 🚨 PROTEÇÃO
-        if not reranked:
-            return {
-                "answer": "Não encontrei informação relevante.",
-                "confidence": 0,
-                "sources": []
-            }
-
+        # =========================================================
         # 🔝 TOP DOCS
-        top_k = 5
+        # =========================================================
+
         top_docs = [
-            item[0][0]
-            for item in reranked[:top_k]
+            doc
+            for doc, score in results
         ]
 
         top_scores = [
-            item[1]
-            for item in reranked[:top_k]
+            score
+            for doc, score in results
         ]
-        # 🚨 PROTEÇÃO
-        if len(top_scores) == 0:
-            return {
-                "answer": "Não encontrei informação relevante.",
-                "confidence": 0,
-                "sources": []
-            }
 
         best_score = float(top_scores[0])
 
-        # 🚨 FILTRO (ajustado para CrossEncoder)
-        if best_score < -4:
-            return {
-                "answer": "Não encontrei informação relevante no documento.",
-                "confidence": 0,
-                "sources": []
-            }
-
+        # =========================================================
         # 🧠 CONTEXTO
-        context = "\n".join([
+        # =========================================================
+
+        context = "\n\n".join([
             doc.page_content
             for doc in top_docs
         ])
 
         # =========================================================
-        # 🔥 CONTEXTO DA CONVERSA
+        # 🧠 HISTÓRICO DA CONVERSA
         # =========================================================
 
         conversation_context = ""
@@ -204,57 +178,74 @@ def chat_with_resume(
         for item in history:
 
             role = item.get("role", "")
-
             content = item.get("content", "")
 
             if role == "user":
+
                 conversation_context += f"Usuário: {content}\n"
 
             elif role == "assistant":
+
                 conversation_context += f"Assistente: {content}\n"
 
-        # 🧠 PROMPT MELHORADO
-        prompt = f"""
-        Você é um assistente especialista em análise de documentos.
+        # =========================================================
+        # 🤖 PROMPT
+        # =========================================================
 
-Use o histórico da conversa para entender o contexto.
+        prompt = f"""
+Você é um assistente especialista em análise de documentos.
+
+Use SOMENTE as informações do contexto.
 
 Regras:
-- Responda SOMENTE com base nos documentos
-- Seja direto e objetivo
+- Seja objetivo
 - Não invente informações
-- Compare os documentos quando necessário
-- Considere perguntas anteriores
-- Se não souber diga:
-"Não encontrei informação relevante no documento."
+- Responda apenas com base nos documentos
+- Se não encontrar informação suficiente, diga isso claramente
 
-Histórico da conversa:
+Histórico:
 {conversation_context}
 
 Contexto:
 {context}
 
-Pergunta atual:
+Pergunta:
 {question}
-        """
+"""
 
+        # =========================================================
         # 🤖 LLM
+        # =========================================================
+
         response = llm.invoke(prompt)
+
         answer = response.content if response else ""
 
-        # 🚨 PROTEÇÃO
         if not answer:
-            answer = "Não consegui gerar uma resposta."
 
-        # 🔥 NORMALIZAÇÃO DE CONFIANÇA
-        confidence = round((best_score + 10) / 20, 2)
+            answer = "Não consegui gerar resposta."
 
-        # 📦 RESPOSTA FINAL
-        return {
-            "answer": answer,
-            "confidence": confidence,
-        "sources": [
-            {
+        # =========================================================
+        # 🔥 CONFIANÇA
+        # =========================================================
+
+        confidence = round(
+            max(
+                min((1 - best_score), 1),
+                0
+            ),
+            2
+        )
+
+        # =========================================================
+        # 📚 SOURCES
+        # =========================================================
+
+        sources = []
+
+        for doc, score in results:
+
+            sources.append({
                 "source": doc.metadata.get(
                     "source",
                     "desconhecido"
@@ -265,26 +256,31 @@ Pergunta atual:
                     "?"
                 ),
 
-                "snippet": extract_snippet_by_answer(
-                    doc.page_content,
-                    answer
-                )[:200],
+                "snippet": doc.page_content[:250],
 
                 "relevance": (
                     "Alta"
-                    if float(score) > 1
+                    if score < 0.5
                     else "Média"
                 )
-            }
-            for doc, score in zip(top_docs, top_scores)
-        ]    
+            })
+
+        # =========================================================
+        # 📦 RETURN
+        # =========================================================
+
+        return {
+            "answer": answer,
+            "confidence": confidence,
+            "sources": sources
         }
+
     except Exception as e:
-        # 🚨 DEBUG (MUITO IMPORTANTE)
+
         print("ERRO NO CHAT:", str(e))
 
         return {
-            "answer": "Erro ao processar a pergunta.",
+            "answer": "Erro ao processar pergunta.",
             "confidence": 0,
             "sources": [],
             "error": str(e)

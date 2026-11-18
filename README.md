@@ -1,141 +1,175 @@
-AI Resume Assistant
+# AI Resume Assistant
 
-Um sistema completo de análise de currículos com IA, utilizando RAG (Retrieval-Augmented Generation), FastAPI e Streamlit.
+Aplicação de análise de currículos com Inteligência Artificial, desenvolvida em **Python**, utilizando **FastAPI, Streamlit, FAISS, RAG e modelos de linguagem (LLMs)**.
 
-O projeto permite:
-- 📄 Fazer perguntas sobre documentos (RAG)
-- 📊 Analisar currículos automaticamente
-- ⚔️ Comparar candidatos com vagas
+O projeto permite consultar documentos, analisar perfis profissionais e comparar currículos com descrições de vagas, auxiliando na identificação de competências e oportunidades de melhoria.
 
----
+## Funcionalidades
 
-## 🚀 Funcionalidades
+### Chat com Documento (RAG)
 
-### 📄 Chat com Documento (RAG)
-- Upload de arquivos `.txt`
-- Busca semântica com FAISS
-- Respostas baseadas no conteúdo do documento
-- Exibição de fontes com score de relevância
+- Upload e processamento de documentos.
+- Extração de conteúdo textual.
+- Busca semântica utilizando FAISS.
+- Geração de respostas com modelos de linguagem.
+- Exibição dos trechos recuperados e suas pontuações de similaridade.
 
----
+**Status:** upload de PDF e consultas RAG testados com sucesso. A recuperação de informações ainda pode ser aprimorada para produzir respostas mais completas.
 
-### 📊 Analisar Currículo
-- Classificação de nível (Júnior, Pleno, Sênior)
-- Identificação de:
-  - Pontos fortes
-  - Pontos fracos
-  - Sugestões de melhoria
+### Análise de Currículo
 
----
+- Classificação estimada de senioridade: Júnior, Pleno ou Sênior.
+- Identificação de competências e pontos fortes.
+- Identificação de informações ausentes ou oportunidades de melhoria.
+- Sugestões de desenvolvimento profissional.
 
-### ⚔️ Comparar com Vaga
-- Calcula o **match (%)** entre currículo e vaga
-- Divide em:
-  - Requisitos obrigatórios faltantes
-  - Requisitos desejáveis
-- Destaca pontos fortes
-- Gera resumo automático
+A classificação é produzida por IA e não substitui uma avaliação profissional de senioridade.
 
----
+### Comparação com Vagas
 
-## 🧠 Tecnologias Utilizadas
-- **Python**
-- **FastAPI** → Backend (API REST)
-- **Streamlit** → Interface web
-- **FAISS** → Busca vetorial
-- **LLMs (IA)** → Análise e geração de respostas
+- Comparação entre o texto do currículo e os requisitos de uma vaga.
+- Estimativa percentual de compatibilidade.
+- Identificação de requisitos obrigatórios não mencionados.
+- Identificação de requisitos desejáveis não mencionados.
+- Destaque de competências relevantes.
+- Geração de resumo da análise.
 
----
-## 📁 Estrutura do Projeto
+**Observação:** o percentual de compatibilidade é estimado pelo modelo de linguagem e não representa uma pontuação estatisticamente validada.
 
-ai-resume-assistant/
-│
+## Tecnologias Utilizadas
 
+| Tecnologia | Aplicação |
+|---|---|
+| Python | Linguagem principal |
+| FastAPI | Desenvolvimento da API REST |
+| Streamlit | Interface web |
+| FAISS | Indexação e busca vetorial |
+| LangChain | Integração com componentes de IA |
+| Hugging Face | Geração de embeddings |
+| Groq | Acesso ao modelo de linguagem |
+| GPT-OSS 120B | Modelo utilizado nos testes de geração de respostas |
+
+## Estrutura do Projeto
+
+```text
+ai_resume_assistant/
 ├── backend/
-
-│ ├── routes/
-
-│ ├── services/
-
-│ ├── main.py
-
-│
-
+│   ├── db/
+│   ├── routes/
+│   ├── services/
+│   └── main.py
 ├── frontend/
-
-│ └── streamlit_app.py
-
-│
-├── index.faiss
-
-├── textos.pkl
-
+│   └── streamlit_app.py
 ├── requirements.txt
-
-├── .env
-
+├── README.md
 └── .gitignore
+```
 
----
+O projeto também utiliza arquivos de índice vetorial e dados associados ao processamento dos documentos.
 
-## ⚙️ Como rodar o projeto
+## Instalação e Execução
 
-1️⃣ Clonar repositório
+### 1. Clonar o repositório
+
 ```bash
 git clone https://github.com/jrm0316/ai_resume_assistant.git
 cd ai_resume_assistant
+```
 
-2️⃣ Backend
+### 2. Criar o ambiente virtual
+
+No Windows, utilizando Python 3.12:
+
+```powershell
+py -3.12 -m venv .venv
+.\.venv\Scripts\Activate.ps1
+```
+
+### 3. Instalar as dependências
+
+```powershell
+python -m pip install -r requirements.txt
+```
+
+As dependências devem estar atualizadas para incluir os pacotes necessários ao backend e ao frontend.
+
+### 4. Configurar a API da Groq
+
+Crie um arquivo `.env` na pasta `backend`, conforme a configuração utilizada na execução local:
+
+```dotenv
+GROQ_API_KEY=sua_chave_aqui
+```
+
+Nunca publique sua chave de API no repositório.
+
+### 5. Iniciar o backend
+
+```powershell
 cd backend
+python -m uvicorn main:app --reload --port 8000
+```
 
-python -m venv venv
-venv\Scripts\activate   # Windows
+Documentação interativa da API:
 
-pip install -r ../requirements.txt
+http://127.0.0.1:8000/docs
 
-uvicorn main:app --reload --port 9000
+### 6. Iniciar o frontend
 
-3️⃣ Frontend (Streamlit)
-Em outro terminal:
+Abra outro terminal na pasta principal do projeto e execute:
 
-cd frontend
-streamlit run streamlit_app.py
+```powershell
+.\.venv\Scripts\python.exe -m streamlit run frontend\streamlit_app.py
+```
 
-🌐 Acessos
-Backend: http://127.0.0.1:9000/docs
-Frontend: aberto automaticamente pelo Streamlit
+A interface normalmente estará disponível em:
 
-📌 Exemplos de uso
-  * Chat com Documento
+http://localhost:8501
 
-Pergunta:
-  * O que é FastAPI?
+O frontend deve estar configurado para utilizar o endereço `http://127.0.0.1:8000`.
 
-Resposta:
-  * FastAPI é usado para criar APIs rápidas.
+## Endpoints da API
 
-Análise de Currículo
-Entrada:
- * Desenvolvedor Python com experiência em APIs REST usando FastAPI
+| Método | Endpoint | Descrição |
+|---|---|---|
+| POST | `/upload` | Processamento de documentos |
+| POST | `/chat` | Perguntas e respostas com RAG |
+| POST | `/analyze` | Análise de currículo |
+| POST | `/match` | Comparação de currículo e vaga |
+| POST | `/compare` | Comparação de currículo e vaga |
 
-Saída:
-  * Nível: Pleno
-  * Pontos fortes e sugestões automáticas
+## Testes Realizados
 
-Comparação com Vaga
-Entrada:
-  * Currículo: Python + FastAPI
-  * Vaga: Python, FastAPI, Docker
+Foram realizados testes manuais utilizando o Swagger UI do FastAPI.
 
-Saída:
-  * Match: 60%
-  * Faltando: Docker
+**Resultados:**
+- Inicialização do backend: aprovada.
+- Upload de PDF: aprovado.
+- Chat com RAG: funcional, com oportunidades de melhoria na recuperação.
+- Análise de currículo: aprovada no cenário testado.
+- Comparação de currículo e vaga: funcional nos dois endpoints.
+- Interface Streamlit: inicialização e funcionalidades ainda dependem de validação completa.
 
-🔥 Diferenciais do Projeto
-  * Uso de RAG na prática
-  * Integração completa Backend + IA + Frontend
-  * Estrutura modular (routes + services)
-  * Aplicação real para recrutamento
+## Melhorias Futuras
 
-### Autor
-  * Desenvolvido por Juliano Rodrigues Madeira
+- Aprimorar a recuperação de contexto no RAG.
+- Avaliar e calibrar o percentual de compatibilidade.
+- Validar os formatos de upload disponíveis.
+- Melhorar o tratamento de erros e a experiência da interface.
+- Adicionar testes automatizados.
+- Revisar e atualizar as dependências do projeto.
+- Preparar a aplicação para implantação.
+
+## Diferenciais do Projeto
+
+- Aplicação prática de RAG em documentos.
+- Integração entre API REST, busca vetorial e LLM.
+- Separação de responsabilidades entre rotas e serviços.
+- Interface web para interação com as funcionalidades de IA.
+- Aplicação de inteligência artificial ao contexto de recrutamento e análise profissional.
+
+## Autor
+
+**Juliano Rodrigues Madeira**
+
+GitHub: https://github.com/jrm0316
